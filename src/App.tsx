@@ -15,6 +15,8 @@ import {
 } from '@chakra-ui/react'
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons'
 
+const CRITICAL_TASK_CRITERIA = 10
+
 type TTask = string
 
 type TTasks = {
@@ -69,8 +71,13 @@ interface State {
   points: number
 }
 
-interface ModifiedState {
+interface ModifiedPointsState {
   points: number
+  index: number
+}
+
+interface ModifiedNameState {
+  name: string
   index: number
 }
 
@@ -78,6 +85,7 @@ enum ActionType {
   setTask,
   removeTask,
   updatePoints,
+  updateName,
 }
 
 export type Action =
@@ -91,7 +99,11 @@ export type Action =
     }
   | {
       type: ActionType.updatePoints
-      task: ModifiedState
+      task: ModifiedPointsState
+    }
+  | {
+      type: ActionType.updateName
+      task: ModifiedNameState
     }
 
 const reducer = (state: State[], action: Action) => {
@@ -110,17 +122,29 @@ const reducer = (state: State[], action: Action) => {
         }
         return task
       })
+    case ActionType.updateName:
+      return sortTasks(state).map((task, index) => {
+        if (index === action.task.index) {
+          return {
+            ...task,
+            name: action.task.name,
+          }
+        }
+        return task
+      })
   }
   return state
 }
 
 const sortTasks = (tasks: State[]) => tasks.sort((a, b) => b.points - a.points)
 
-const initialEditState = { index: -1, points: 0 }
+const initialEditPointsState = { index: -1, points: 0 }
+const initialEditNameState = { index: -1, name: '' }
 
 export const App = ({ newTask = '', tasks: initialTasks = [] }: TAppProps) => {
   const [task, setTask] = useState(newTask)
-  const [edit, setEdit] = useState(initialEditState)
+  const [editPoints, setEditPoints] = useState(initialEditPointsState)
+  const [editName, setEditName] = useState(initialEditNameState)
   const [tasks, dispatch] = useReducer(reducer, initialTasks)
 
   return (
@@ -150,26 +174,29 @@ export const App = ({ newTask = '', tasks: initialTasks = [] }: TAppProps) => {
                   aria-label="points"
                   {...taskStyles.normal.Tag}
                   onClick={() =>
-                    setEdit({
+                    setEditPoints({
                       index: i,
                       points: task.points,
                     })
                   }
                 >
-                  {edit.index === i ? (
-                    <input
+                  {editPoints.index === i ? (
+                    <Input
                       autoFocus
                       onChange={(e) =>
-                        setEdit((prev) => ({
+                        setEditPoints((prev) => ({
                           ...prev,
                           points: Number(e.target.value),
                         }))
                       }
                       onBlur={() => {
-                        dispatch({ type: ActionType.updatePoints, task: edit })
-                        setEdit(initialEditState)
+                        dispatch({
+                          type: ActionType.updatePoints,
+                          task: editPoints,
+                        })
+                        setEditPoints(initialEditPointsState)
                       }}
-                      value={edit.points}
+                      value={editPoints.points}
                     />
                   ) : (
                     task.points
@@ -177,15 +204,37 @@ export const App = ({ newTask = '', tasks: initialTasks = [] }: TAppProps) => {
                 </Tag>{' '}
                 <Text
                   {...taskStyles.normal.Text}
-                  {...(task.points >= 10 && { 'aria-label': 'critical' })}
+                  {...(task.points >= CRITICAL_TASK_CRITERIA && {
+                    'aria-label': 'critical',
+                  })}
                   onClick={() =>
-                    setEdit({
+                    setEditName({
                       index: i,
-                      points: task.points,
+                      name: task.name,
                     })
                   }
                 >
-                  {task.name}
+                  {editName.index === i ? (
+                    <Input
+                      autoFocus
+                      onBlur={() => {
+                        dispatch({
+                          type: ActionType.updateName,
+                          task: editName,
+                        })
+                        setEditName(initialEditNameState)
+                      }}
+                      onChange={(e) =>
+                        setEditName((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      value={editName.name}
+                    />
+                  ) : (
+                    task.name
+                  )}
                 </Text>
                 <IconButton
                   aria-label="Remove"

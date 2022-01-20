@@ -65,4 +65,19 @@ describe('App', () => {
     const updatedPoints = screen.getByText('20')
     expect(updatedPoints).toBeInTheDocument()
   })
+
+  it('should be able to update name', () => {
+    render(<App {...stateFixture} />)
+
+    const existingName = screen.getByText('get shorty')
+    expect(existingName).toBeInTheDocument()
+
+    userEvent.click(existingName)
+    userEvent.type(existingName, 'yy')
+
+    userEvent.click(document.body)
+
+    const updatedName = screen.getByText('get shortyyy')
+    expect(updatedName).toBeInTheDocument()
+  })
 })
